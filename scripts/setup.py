@@ -502,7 +502,7 @@ def install_slurm():
             GIT_URL = 'https://github.com/SchedMD/slurm.git'
             use_version = cfg.slurm_version[2:]
             util.run(
-                "git clone -b {0} {1} {0}".format(use_version, GIT_URL))
+                "git clone --single-branch --depth 1 -b {0} {1} {0}".format(use_version, GIT_URL))
         else:
             file = 'slurm-{}.tar.bz2'.format(cfg.slurm_version)
             slurm_url = 'https://download.schedmd.com/slurm/' + file
@@ -952,7 +952,7 @@ def install_ompi():
     ompi_path = APPS_DIR/'ompi'/cfg.ompi_version/'src'
     if not ompi_path.exists():
         ompi_path.mkdir(parents=True)
-    util.run(f"git clone -b {cfg.ompi_version} {ompi_git} {ompi_path}")
+    util.run(f"git clone --single-branch --depth 1 -b {cfg.ompi_version} {ompi_git} {ompi_path}")
     with cd(ompi_path):
         util.run("./autogen.pl", stdout=DEVNULL)
 
