@@ -592,11 +592,12 @@ After=network.target munge.service
 ConditionPathExists={prefix}/etc/slurmdbd.conf
 
 [Service]
-Type=forking
+Type=simple
 EnvironmentFile=-/etc/sysconfig/slurmdbd
-ExecStart={prefix}/sbin/slurmdbd $SLURMDBD_OPTIONS
+ExecStart={prefix}/sbin/slurmdbd -D $SLURMDBD_OPTIONS
 ExecReload=/bin/kill -HUP $MAINPID
-PIDFile=/var/run/slurm/slurmdbd.pid
+LimitNOFILE=65536
+TasksMax=infinity
 
 [Install]
 WantedBy=multi-user.target
