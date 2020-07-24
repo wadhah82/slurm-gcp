@@ -9,6 +9,7 @@ ControlMachine={CONTROL_MACHINE}
 #
 AuthType=auth/munge
 AuthInfo=cred_expire=120
+AuthAltTypes=auth/jwt
 #CheckpointType=checkpoint/none
 CredType=cred/munge
 #DisableRootJobs=NO

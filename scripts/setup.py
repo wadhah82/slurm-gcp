@@ -118,6 +118,7 @@ SSSSSSSSSSSS    SSS    SSSSSSSSSSSSS    SSSS        SSSS     SSSS     SSSS
 def add_slurm_user():
 
     util.run("useradd -m -c SlurmUser -d /var/lib/slurm -U -r slurm")
+    util.run("useradd -m -c Slurmrestd -d /var/lib/slurmrestd -U -r slurmrestd")
 # END add_slurm_user()
 
 
@@ -451,6 +452,43 @@ def install_cgroup_conf():
 
 # END install_cgroup_conf()
 
+def install_libjwt():
+
+    JWT_PREFIX = APPS_DIR/'libjwt'/cfg.libjwt_version
+    src_path = APPS_DIR/'libjwt/src/'
+    if not src_path.exists():
+        src_path.mkdir(parents=True)
+
+    GIT_URL = 'https://github.com/benmcollins/libjwt.git'
+    util.run(
+        "git clone --single-branch --depth 1 -b {0} {1} {2}".format(cfg.libjwt_version, GIT_URL, src_path))
+
+    with cd(src_path):
+        util.run("autoreconf -if")
+        util.run("./configure --prefix={} --sysconfdir={}/etc"
+                 .format(JWT_PREFIX, JWT_PREFIX), stdout=DEVNULL)
+        util.run("make -j install", stdout=DEVNULL)
+
+    os.symlink(JWT_PREFIX, APPS_DIR/'libjwt/current/')
+
+    with open('/etc/ld.so.conf.d/libjwt-x86_64.conf', 'w') as f:
+        f.write(str(APPS_DIR)+"/libjwt/current/")
+
+    util.run("ldconfig")
+
+    jwt_key = APPS_DIR/'slurm/state/jwt_hs256.key'
+
+    if cfg.jwt_key:
+        with (jwt_key).open('w') as f:
+            f.write(cfg.jwt_key)
+    else:
+        util.run("dd if=/dev/urandom bs=32 count=1 >"+str(jwt_key), shell=True)
+
+    util.run(f"chown -R slurm:slurm {jwt_key}")
+    jwt_key.chmod(0o400)
+
+
+# END install_libjwt()
 
 def install_meta_files():
 
@@ -489,7 +527,6 @@ def install_meta_files():
 
 # END install_meta_files()
 
-
 def install_slurm():
 
     src_path = APPS_DIR/'slurm/src'
@@ -518,8 +555,8 @@ def install_slurm():
         build_dir.mkdir(parents=True)
 
     with cd(build_dir):
-        util.run("../configure --prefix={} --sysconfdir={}/etc"
-                 .format(SLURM_PREFIX, CURR_SLURM_DIR), stdout=DEVNULL)
+        util.run("../configure --prefix={} --sysconfdir={}/etc  --with-jwt={}/libjwt/current/"
+                 .format(SLURM_PREFIX, CURR_SLURM_DIR, APPS_DIR), stdout=DEVNULL)
         util.run("make -j install", stdout=DEVNULL)
     with cd(build_dir/'contribs'):
         util.run("make -j install", stdout=DEVNULL)
@@ -604,6 +641,28 @@ WantedBy=multi-user.target
 """.format(prefix=CURR_SLURM_DIR))
 
     dbd_service.chmod(0o644)
+
+    # slurmrestd.service
+    slurmrestd_service = Path('/usr/lib/systemd/system/slurmrestd.service')
+    with slurmrestd_service.open('w') as f:
+        f.write("""
+[Unit]
+Description=Slurm REST daemon
+After=network.target munge.service slurmctld.service
+ConditionPathExists={prefix}/etc/slurm.conf
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/sysconfig/slurmrestd
+Environment="SLURM_JWT=daemon"
+ExecStart={prefix}/sbin/slurmrestd $SLURMRESTD_OPTIONS 0.0.0.0:80
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+""".format(prefix=CURR_SLURM_DIR))
+
+    slurmrestd_service.chmod(0o644)
 
 # END install_controller_service_scripts()
 
@@ -1036,6 +1095,7 @@ def main():
         mount_nfs_vols()
         time.sleep(5)
         start_munge()
+        install_libjwt()
         install_slurm()
         install_ompi()
 
@@ -1070,6 +1130,8 @@ def main():
 
         util.run("systemctl enable slurmctld")
         util.run("systemctl start slurmctld")
+        util.run("systemctl enable slurmrestd")
+        util.run("systemctl start slurmrestd")
         setup_nfs_threads()
         # Export at the end to signal that everything is up
         util.run("systemctl enable nfs-server")

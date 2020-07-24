@@ -186,6 +186,7 @@ class Config(OrderedDict):
                   'nfs_apps_server',
                   'nfs_apps_dir',
                   'ompi_version',
+                  'libjwt_version',
                   'controller_secondary_disk',
                   'slurm_version',
                   'suspend_time',

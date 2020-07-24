@@ -50,6 +50,13 @@ PACKAGES=(
         'pdsh'
         'openmpi'
         'yum-utils'
+	'jansson-devel'
+	'http-parser-devel'
+	'libyaml-devel'
+	'json-c-devel'
+	'autoconf'
+	'automake'
+	'libtool'
     )
 
 PY_PACKAGES=(
