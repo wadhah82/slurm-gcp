@@ -569,11 +569,12 @@ After=network.target munge.service
 ConditionPathExists={prefix}/etc/slurm.conf
 
 [Service]
-Type=forking
+Type=simple
 EnvironmentFile=-/etc/sysconfig/slurmctld
-ExecStart={prefix}/sbin/slurmctld $SLURMCTLD_OPTIONS
+ExecStart={prefix}/sbin/slurmctld -D $SLURMCTLD_OPTIONS
 ExecReload=/bin/kill -HUP $MAINPID
-PIDFile=/var/run/slurm/slurmctld.pid
+LimitNOFILE=65536
+TasksMax=infinity
 
 [Install]
 WantedBy=multi-user.target
