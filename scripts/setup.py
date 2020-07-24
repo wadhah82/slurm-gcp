@@ -563,11 +563,6 @@ def install_slurm():
 
     os.symlink(SLURM_PREFIX, CURR_SLURM_DIR)
 
-    state_dir = APPS_DIR/'slurm/state'
-    if not state_dir.exists():
-        state_dir.mkdir(parents=True)
-        util.run(f"chown -R slurm: {state_dir}")
-
     install_slurm_conf()
     install_slurmdbd_conf()
     install_cgroup_conf()
@@ -1094,6 +1089,12 @@ def main():
     if cfg.instance_type == 'controller':
         mount_nfs_vols()
         time.sleep(5)
+
+        state_dir = APPS_DIR/'slurm/state'
+        if not state_dir.exists():
+            state_dir.mkdir(parents=True)
+            util.run(f"chown -R slurm: {state_dir}")
+
         start_munge()
         install_libjwt()
         install_slurm()
