@@ -637,6 +637,10 @@ WantedBy=multi-user.target
 
     dbd_service.chmod(0o644)
 
+# END install_controller_service_scripts()
+
+def install_slurmrest_servce_script():
+
     # slurmrestd.service
     slurmrestd_service = Path('/usr/lib/systemd/system/slurmrestd.service')
     with slurmrestd_service.open('w') as f:
@@ -659,8 +663,7 @@ WantedBy=multi-user.target
 
     slurmrestd_service.chmod(0o644)
 
-# END install_controller_service_scripts()
-
+# END install_slurmrestd_service_script()
 
 def install_compute_service_scripts():
 
@@ -1107,6 +1110,7 @@ def main():
             pass
 
         install_controller_service_scripts()
+        install_slurmrest_servce_script()
 
         if not cfg.cloudsql:
             util.run('systemctl enable mariadb')
@@ -1173,6 +1177,9 @@ def main():
     else:  # login nodes
         mount_nfs_vols()
         start_munge()
+        install_slurmrest_servce_script()
+        util.run("systemctl enable slurmrestd")
+        util.run("systemctl start slurmrestd")
 
         try:
             util.run(str(APPS_DIR/"slurm/scripts/custom-compute-install"))
