@@ -335,6 +335,7 @@ properties:
 
   libjwt_version  :
     type        : string
+    default     : v1.12.0
     enum        : ["v1.12.0"]
     description : Version/branch of libjwt to install.
 
